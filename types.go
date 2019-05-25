@@ -11,6 +11,7 @@ import (
 
 // APIResponse is a response from the Telegram API with the result
 // stored raw.
+// ffjson: noencoder
 type APIResponse struct {
 	Ok          bool                `json:"ok"`
 	Result      json.RawMessage     `json:"result"`
@@ -20,6 +21,7 @@ type APIResponse struct {
 }
 
 // ResponseParameters are various errors that can be returned in APIResponse.
+// ffjson: noencoder
 type ResponseParameters struct {
 	MigrateToChatID int64 `json:"migrate_to_chat_id"` // optional
 	RetryAfter      int   `json:"retry_after"`        // optional
