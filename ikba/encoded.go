@@ -8,8 +8,8 @@ package ikba
 import (
 	"unsafe"
 
-	"github.com/qioalice/devola-core/chat"
-	"github.com/qioalice/devola-core/view"
+	"github.com/qioalice/devola/core/chat"
+	"github.com/qioalice/devola/core/view"
 )
 
 // TODO: Add negative index GetArg support.

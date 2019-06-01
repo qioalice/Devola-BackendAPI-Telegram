@@ -6,16 +6,13 @@
 package tgbotapi
 
 import (
-	"github.com/qioalice/devola-core/event"
+	"github.com/qioalice/devola/core/event"
 )
 
 // Constants of Type.
 // Use these constants to figure out what kind of event is occurred
 // (by comparing Type).
 const (
-
-	// Marker of invalid type.
-	CTypeInvalid event.Type = 0 + iota
 
 	// Chat text command.
 	// tEvent's Data field represents a lowercase command without arguments.

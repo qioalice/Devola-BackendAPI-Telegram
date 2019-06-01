@@ -9,8 +9,8 @@ import (
 	"testing"
 	"unsafe"
 
-	"github.com/qioalice/devola-core/chat"
-	"github.com/qioalice/devola-core/view"
+	"github.com/qioalice/devola/core/chat"
+	"github.com/qioalice/devola/core/view"
 
 	"github.com/stretchr/testify/require"
 )
