@@ -264,10 +264,11 @@ handle_Result:
 				return fs.WrapErr(err)
 			}
 
-			err = j.Result.UnmarshalJSON(tbuf)
-			if err != nil {
-				return fs.WrapErr(err)
-			}
+			j.Result = tbuf
+			// err = j.Result.UnmarshalJSON(tbuf)
+			// if err != nil {
+			// 	return fs.WrapErr(err)
+			// }
 		}
 		state = fflib.FFParse_after_value
 	}
