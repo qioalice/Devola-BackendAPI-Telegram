@@ -1,23 +1,31 @@
+// Package tgbotapi has functions and types used for interacting with
+// the Telegram Bot API.
 package tgbotapi
 
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/url"
 	"strings"
 	"time"
+
+	ffjsoninception "github.com/pquerna/ffjson/inception"
+	"github.com/valyala/bytebufferpool"
 )
 
-// APIResponse is a response from the Telegram API with the result
-// stored raw.
+// APIResponse is a response from the Telegram API with the result stored raw.
 // ffjson: noencoder
 type APIResponse struct {
-	Ok          bool                `json:"ok"`
+	Ok bool `json:"ok"`
+	// It's json.RawMessage (type alias to the []byte) because if it will be
+	// directly []byte, generated code by ffjson will be more difficult than now.
 	Result      json.RawMessage     `json:"result"`
 	ErrorCode   int                 `json:"error_code"`
 	Description string              `json:"description"`
 	Parameters  *ResponseParameters `json:"parameters"`
+	// It's a buffer where a RAW JSON data IS stored and AVAILABLE NOW,
+	// this APIResponse has been decoded from.
+	RAW *bytebufferpool.ByteBuffer `json:"-"`
 }
 
 // ResponseParameters are various errors that can be returned in APIResponse.
@@ -26,6 +34,9 @@ type ResponseParameters struct {
 	MigrateToChatID int64 `json:"migrate_to_chat_id"` // optional
 	RetryAfter      int   `json:"retry_after"`        // optional
 }
+
+// ChatID is a primitive alias to the type of chat ID.
+type ChatID int64
 
 // Update is an update response, from GetUpdates.
 type Update struct {
@@ -40,6 +51,11 @@ type Update struct {
 	ShippingQuery      *ShippingQuery      `json:"shipping_query"`
 	PreCheckoutQuery   *PreCheckoutQuery   `json:"pre_checkout_query"`
 }
+
+// Updates is a set (slice) of Update.
+// Created for ffjson.
+// ffjson: noencoder.
+type Updates []Update
 
 // UpdatesChannel is the channel for getting updates.
 type UpdatesChannel <-chan Update
@@ -78,12 +94,6 @@ func (u *User) String() string {
 	return name
 }
 
-// GroupChat is a group chat.
-type GroupChat struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-}
-
 // ChatPhoto represents a chat photo.
 type ChatPhoto struct {
 	SmallFileID string `json:"small_file_id"`
@@ -106,27 +116,27 @@ type Chat struct {
 }
 
 // IsPrivate returns if the Chat is a private conversation.
-func (c Chat) IsPrivate() bool {
+func (c *Chat) IsPrivate() bool {
 	return c.Type == "private"
 }
 
 // IsGroup returns if the Chat is a group.
-func (c Chat) IsGroup() bool {
+func (c *Chat) IsGroup() bool {
 	return c.Type == "group"
 }
 
 // IsSuperGroup returns if the Chat is a supergroup.
-func (c Chat) IsSuperGroup() bool {
+func (c *Chat) IsSuperGroup() bool {
 	return c.Type == "supergroup"
 }
 
 // IsChannel returns if the Chat is a channel.
-func (c Chat) IsChannel() bool {
+func (c *Chat) IsChannel() bool {
 	return c.Type == "channel"
 }
 
 // ChatConfig returns a ChatConfig struct for chat related methods.
-func (c Chat) ChatConfig() ChatConfig {
+func (c *Chat) ChatConfig() ChatConfig {
 	return ChatConfig{ChatID: c.ID}
 }
 
@@ -144,13 +154,13 @@ type Message struct {
 	ReplyToMessage        *Message           `json:"reply_to_message"`        // optional
 	EditDate              int                `json:"edit_date"`               // optional
 	Text                  string             `json:"text"`                    // optional
-	Entities              *[]MessageEntity   `json:"entities"`                // optional
-	CaptionEntities       *[]MessageEntity   `json:"caption_entities"`        // optional
+	Entities              []MessageEntity    `json:"entities"`                // optional
+	CaptionEntities       []MessageEntity    `json:"caption_entities"`        // optional
 	Audio                 *Audio             `json:"audio"`                   // optional
 	Document              *Document          `json:"document"`                // optional
 	Animation             *ChatAnimation     `json:"animation"`               // optional
 	Game                  *Game              `json:"game"`                    // optional
-	Photo                 *[]PhotoSize       `json:"photo"`                   // optional
+	Photo                 []PhotoSize        `json:"photo"`                   // optional
 	Sticker               *Sticker           `json:"sticker"`                 // optional
 	Video                 *Video             `json:"video"`                   // optional
 	VideoNote             *VideoNote         `json:"video_note"`              // optional
@@ -159,10 +169,10 @@ type Message struct {
 	Contact               *Contact           `json:"contact"`                 // optional
 	Location              *Location          `json:"location"`                // optional
 	Venue                 *Venue             `json:"venue"`                   // optional
-	NewChatMembers        *[]User            `json:"new_chat_members"`        // optional
+	NewChatMembers        []User             `json:"new_chat_members"`        // optional
 	LeftChatMember        *User              `json:"left_chat_member"`        // optional
 	NewChatTitle          string             `json:"new_chat_title"`          // optional
-	NewChatPhoto          *[]PhotoSize       `json:"new_chat_photo"`          // optional
+	NewChatPhoto          []PhotoSize        `json:"new_chat_photo"`          // optional
 	DeleteChatPhoto       bool               `json:"delete_chat_photo"`       // optional
 	GroupChatCreated      bool               `json:"group_chat_created"`      // optional
 	SuperGroupChatCreated bool               `json:"supergroup_chat_created"` // optional
@@ -182,12 +192,11 @@ func (m *Message) Time() time.Time {
 
 // IsCommand returns true if message starts with a "bot_command" entity.
 func (m *Message) IsCommand() bool {
-	if m.Entities == nil || len(*m.Entities) == 0 {
+	if m.Entities == nil || len(m.Entities) == 0 {
 		return false
 	}
 
-	entity := (*m.Entities)[0]
-	return entity.Offset == 0 && entity.IsCommand()
+	return m.Entities[0].Offset == 0 && m.Entities[0].IsCommand()
 }
 
 // Command checks if the message was a command and if it was, returns the
@@ -216,8 +225,7 @@ func (m *Message) CommandWithAt() string {
 	}
 
 	// IsCommand() checks that the message begins with a bot_command entity
-	entity := (*m.Entities)[0]
-	return m.Text[1:entity.Length]
+	return m.Text[1:m.Entities[0].Length]
 }
 
 // CommandArguments checks if the message was a command and if it was,
@@ -235,12 +243,11 @@ func (m *Message) CommandArguments() string {
 	}
 
 	// IsCommand() checks that the message begins with a bot_command entity
-	entity := (*m.Entities)[0]
-	if len(m.Text) == entity.Length {
+	if len(m.Text) == m.Entities[0].Length {
 		return "" // The command makes up the whole message
 	}
 
-	return m.Text[entity.Length+1:]
+	return m.Text[m.Entities[0].Length+1:]
 }
 
 // MessageEntity contains information about data in a Message.
@@ -253,7 +260,7 @@ type MessageEntity struct {
 }
 
 // ParseURL attempts to parse a URL contained within a MessageEntity.
-func (e MessageEntity) ParseURL() (*url.URL, error) {
+func (e *MessageEntity) ParseURL() (*url.URL, error) {
 	if e.URL == "" {
 		return nil, errors.New(ErrBadURL)
 	}
@@ -262,52 +269,52 @@ func (e MessageEntity) ParseURL() (*url.URL, error) {
 }
 
 // IsMention returns true if the type of the message entity is "mention" (@username).
-func (e MessageEntity) IsMention() bool {
+func (e *MessageEntity) IsMention() bool {
 	return e.Type == "mention"
 }
 
 // IsHashtag returns true if the type of the message entity is "hashtag".
-func (e MessageEntity) IsHashtag() bool {
+func (e *MessageEntity) IsHashtag() bool {
 	return e.Type == "hashtag"
 }
 
 // IsCommand returns true if the type of the message entity is "bot_command".
-func (e MessageEntity) IsCommand() bool {
+func (e *MessageEntity) IsCommand() bool {
 	return e.Type == "bot_command"
 }
 
 // IsUrl returns true if the type of the message entity is "url".
-func (e MessageEntity) IsUrl() bool {
+func (e *MessageEntity) IsUrl() bool {
 	return e.Type == "url"
 }
 
 // IsEmail returns true if the type of the message entity is "email".
-func (e MessageEntity) IsEmail() bool {
+func (e *MessageEntity) IsEmail() bool {
 	return e.Type == "email"
 }
 
 // IsBold returns true if the type of the message entity is "bold" (bold text).
-func (e MessageEntity) IsBold() bool {
+func (e *MessageEntity) IsBold() bool {
 	return e.Type == "bold"
 }
 
 // IsItalic returns true if the type of the message entity is "italic" (italic text).
-func (e MessageEntity) IsItalic() bool {
+func (e *MessageEntity) IsItalic() bool {
 	return e.Type == "italic"
 }
 
 // IsCode returns true if the type of the message entity is "code" (monowidth string).
-func (e MessageEntity) IsCode() bool {
+func (e *MessageEntity) IsCode() bool {
 	return e.Type == "code"
 }
 
 // IsPre returns true if the type of the message entity is "pre" (monowidth block).
-func (e MessageEntity) IsPre() bool {
+func (e *MessageEntity) IsPre() bool {
 	return e.Type == "pre"
 }
 
 // IsTextLink returns true if the type of the message entity is "text_link" (clickable text URL).
-func (e MessageEntity) IsTextLink() bool {
+func (e *MessageEntity) IsTextLink() bool {
 	return e.Type == "text_link"
 }
 
@@ -430,7 +437,7 @@ type File struct {
 //
 // It requires the Bot Token to create the link.
 func (f *File) Link(token string) string {
-	return fmt.Sprintf(FileEndpoint, token, f.FilePath)
+	return makeURL(FileEndpoint, token, f.FilePath)
 }
 
 // ReplyKeyboardMarkup allows the Bot to set a custom keyboard.
@@ -522,19 +529,19 @@ type ChatMember struct {
 }
 
 // IsCreator returns if the ChatMember was the creator of the chat.
-func (chat ChatMember) IsCreator() bool { return chat.Status == "creator" }
+func (chat *ChatMember) IsCreator() bool { return chat.Status == "creator" }
 
 // IsAdministrator returns if the ChatMember is a chat administrator.
-func (chat ChatMember) IsAdministrator() bool { return chat.Status == "administrator" }
+func (chat *ChatMember) IsAdministrator() bool { return chat.Status == "administrator" }
 
 // IsMember returns if the ChatMember is a current member of the chat.
-func (chat ChatMember) IsMember() bool { return chat.Status == "member" }
+func (chat *ChatMember) IsMember() bool { return chat.Status == "member" }
 
 // HasLeft returns if the ChatMember left the chat.
-func (chat ChatMember) HasLeft() bool { return chat.Status == "left" }
+func (chat *ChatMember) HasLeft() bool { return chat.Status == "left" }
 
 // WasKicked returns if the ChatMember was kicked from the chat.
-func (chat ChatMember) WasKicked() bool { return chat.Status == "kicked" }
+func (chat *ChatMember) WasKicked() bool { return chat.Status == "kicked" }
 
 // Game is a game within Telegram.
 type Game struct {
@@ -575,11 +582,18 @@ type WebhookInfo struct {
 }
 
 // IsSet returns true if a webhook is currently set.
-func (info WebhookInfo) IsSet() bool {
+func (info *WebhookInfo) IsSet() bool {
 	return info.URL != ""
 }
 
+// Common type for InputMediaPhoto and InputMediaVideo.
+type inputMedia interface {
+	ffjsoninception.MarshalerFaster
+	inputMediaImplementator()
+}
+
 // InputMediaPhoto contains a photo for displaying as part of a media group.
+// ffjson: nodecoder
 type InputMediaPhoto struct {
 	Type      string `json:"type"`
 	Media     string `json:"media"`
@@ -587,7 +601,11 @@ type InputMediaPhoto struct {
 	ParseMode string `json:"parse_mode"`
 }
 
+// Method to implement interface inputMedia by InputMediaPhoto.
+func (InputMediaPhoto) inputMediaImplementator() {}
+
 // InputMediaVideo contains a video for displaying as part of a media group.
+// ffjson: nodecoder
 type InputMediaVideo struct {
 	Type  string `json:"type"`
 	Media string `json:"media"`
@@ -599,6 +617,9 @@ type InputMediaVideo struct {
 	Duration          int    `json:"duration"`
 	SupportsStreaming bool   `json:"supports_streaming"`
 }
+
+// Method to implement interface inputMedia by InputMediaVideo.
+func (InputMediaVideo) inputMediaImplementator() {}
 
 // InlineQuery is a Query from Telegram for an inline request.
 type InlineQuery struct {
@@ -914,9 +935,9 @@ type OrderInfo struct {
 
 // ShippingOption represents one shipping option.
 type ShippingOption struct {
-	ID     string          `json:"id"`
-	Title  string          `json:"title"`
-	Prices *[]LabeledPrice `json:"prices"`
+	ID     string         `json:"id"`
+	Title  string         `json:"title"`
+	Prices []LabeledPrice `json:"prices"`
 }
 
 // SuccessfulPayment contains basic information about a successful payment.

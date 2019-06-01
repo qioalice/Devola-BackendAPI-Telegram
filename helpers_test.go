@@ -1,9 +1,12 @@
 package tgbotapi_test
 
 import (
-	"github.com/go-telegram-bot-api/telegram-bot-api"
 	"testing"
 )
+
+// Local import (avoid net imports).
+//noinspection GoInvalidPackageImport
+import tgbotapi "."
 
 func TestNewInlineQueryResultArticle(t *testing.T) {
 	result := tgbotapi.NewInlineQueryResultArticle("id", "title", "message")

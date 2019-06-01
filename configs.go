@@ -1,3 +1,5 @@
+// Package tgbotapi has functions and types used for interacting with
+// the Telegram Bot API.
 package tgbotapi
 
 import (
@@ -5,15 +7,9 @@ import (
 	"io"
 	"net/url"
 	"strconv"
-)
 
-// Telegram constants
-const (
-	// APIEndpoint is the endpoint for all API methods,
-	// with formatting for Sprintf.
-	APIEndpoint = "https://api.telegram.org/bot%s/%s"
-	// FileEndpoint is the endpoint for downloading a file from Telegram.
-	FileEndpoint = "https://api.telegram.org/file/bot%s/%s"
+	"github.com/pquerna/ffjson/ffjson"
+	"github.com/valyala/fasthttp"
 )
 
 // Constant values for ChatActions
@@ -49,7 +45,7 @@ const (
 
 // Chattable is any config type that can be sent.
 type Chattable interface {
-	values() (url.Values, error)
+	values() (*fasthttp.Args, error)
 	method() string
 }
 
@@ -72,8 +68,9 @@ type BaseChat struct {
 }
 
 // values returns url.Values representation of BaseChat
-func (chat *BaseChat) values() (url.Values, error) {
-	v := url.Values{}
+func (chat *BaseChat) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
+
 	if chat.ChannelUsername != "" {
 		v.Add("chat_id", chat.ChannelUsername)
 	} else {
@@ -163,8 +160,8 @@ type BaseEdit struct {
 	ReplyMarkup     *InlineKeyboardMarkup
 }
 
-func (edit BaseEdit) values() (url.Values, error) {
-	v := url.Values{}
+func (edit BaseEdit) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	if edit.InlineMessageID == "" {
 		if edit.ChannelUsername != "" {
@@ -197,7 +194,7 @@ type MessageConfig struct {
 }
 
 // values returns a url.Values representation of MessageConfig.
-func (config MessageConfig) values() (url.Values, error) {
+func (config MessageConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -225,7 +222,7 @@ type ForwardConfig struct {
 }
 
 // values returns a url.Values representation of ForwardConfig.
-func (config ForwardConfig) values() (url.Values, error) {
+func (config ForwardConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -262,7 +259,7 @@ func (config PhotoConfig) params() (map[string]string, error) {
 }
 
 // Values returns a url.Values representation of PhotoConfig.
-func (config PhotoConfig) values() (url.Values, error) {
+func (config PhotoConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -300,7 +297,7 @@ type AudioConfig struct {
 }
 
 // values returns a url.Values representation of AudioConfig.
-func (config AudioConfig) values() (url.Values, error) {
+func (config AudioConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -369,7 +366,7 @@ type DocumentConfig struct {
 }
 
 // values returns a url.Values representation of DocumentConfig.
-func (config DocumentConfig) values() (url.Values, error) {
+func (config DocumentConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -416,7 +413,7 @@ type StickerConfig struct {
 }
 
 // values returns a url.Values representation of StickerConfig.
-func (config StickerConfig) values() (url.Values, error) {
+func (config StickerConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -453,7 +450,7 @@ type VideoConfig struct {
 }
 
 // values returns a url.Values representation of VideoConfig.
-func (config VideoConfig) values() (url.Values, error) {
+func (config VideoConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -506,7 +503,7 @@ type AnimationConfig struct {
 }
 
 // values returns a url.Values representation of AnimationConfig.
-func (config AnimationConfig) values() (url.Values, error) {
+func (config AnimationConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -558,7 +555,7 @@ type VideoNoteConfig struct {
 }
 
 // values returns a url.Values representation of VideoNoteConfig.
-func (config VideoNoteConfig) values() (url.Values, error) {
+func (config VideoNoteConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -610,7 +607,7 @@ type VoiceConfig struct {
 }
 
 // values returns a url.Values representation of VoiceConfig.
-func (config VoiceConfig) values() (url.Values, error) {
+func (config VoiceConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -660,18 +657,19 @@ func (config VoiceConfig) method() string {
 // MediaGroupConfig contains information about a sendMediaGroup request.
 type MediaGroupConfig struct {
 	BaseChat
-	InputMedia []interface{}
+	InputMedia []inputMedia
 }
 
-func (config MediaGroupConfig) values() (url.Values, error) {
+func (config MediaGroupConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
-		return v, err
+		return nil, err
 	}
 
-	data, err := json.Marshal(config.InputMedia)
+	data, err := ffjson.Marshal(config.InputMedia)
 	if err != nil {
-		return v, err
+		fasthttp.ReleaseArgs(v)
+		return nil, err
 	}
 
 	v.Add("media", string(data))
@@ -691,7 +689,7 @@ type LocationConfig struct {
 }
 
 // values returns a url.Values representation of LocationConfig.
-func (config LocationConfig) values() (url.Values, error) {
+func (config LocationConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -718,7 +716,7 @@ type VenueConfig struct {
 	FoursquareID string
 }
 
-func (config VenueConfig) values() (url.Values, error) {
+func (config VenueConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -747,7 +745,7 @@ type ContactConfig struct {
 	LastName    string
 }
 
-func (config ContactConfig) values() (url.Values, error) {
+func (config ContactConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -770,7 +768,7 @@ type GameConfig struct {
 	GameShortName string
 }
 
-func (config GameConfig) values() (url.Values, error) {
+func (config GameConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -797,8 +795,8 @@ type SetGameScoreConfig struct {
 	InlineMessageID    string
 }
 
-func (config SetGameScoreConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config SetGameScoreConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("user_id", strconv.Itoa(config.UserID))
 	v.Add("score", strconv.Itoa(config.Score))
@@ -830,8 +828,8 @@ type GetGameHighScoresConfig struct {
 	InlineMessageID string
 }
 
-func (config GetGameHighScoresConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config *GetGameHighScoresConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("user_id", strconv.Itoa(config.UserID))
 	if config.InlineMessageID == "" {
@@ -848,29 +846,8 @@ func (config GetGameHighScoresConfig) values() (url.Values, error) {
 	return v, nil
 }
 
-func (config GetGameHighScoresConfig) method() string {
+func (config *GetGameHighScoresConfig) method() string {
 	return "getGameHighScores"
-}
-
-// ChatActionConfig contains information about a SendChatAction request.
-type ChatActionConfig struct {
-	BaseChat
-	Action string // required
-}
-
-// values returns a url.Values representation of ChatActionConfig.
-func (config ChatActionConfig) values() (url.Values, error) {
-	v, err := config.BaseChat.values()
-	if err != nil {
-		return v, err
-	}
-	v.Add("action", config.Action)
-	return v, nil
-}
-
-// method returns Telegram API method name for sending ChatAction.
-func (config ChatActionConfig) method() string {
-	return "sendChatAction"
 }
 
 // EditMessageTextConfig allows you to modify the text in a message.
@@ -881,7 +858,7 @@ type EditMessageTextConfig struct {
 	DisableWebPagePreview bool
 }
 
-func (config EditMessageTextConfig) values() (url.Values, error) {
+func (config EditMessageTextConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseEdit.values()
 	if err != nil {
 		return v, err
@@ -905,7 +882,7 @@ type EditMessageCaptionConfig struct {
 	ParseMode string
 }
 
-func (config EditMessageCaptionConfig) values() (url.Values, error) {
+func (config EditMessageCaptionConfig) values() (*fasthttp.Args, error) {
 	v, _ := config.BaseEdit.values()
 
 	v.Add("caption", config.Caption)
@@ -926,7 +903,7 @@ type EditMessageReplyMarkupConfig struct {
 	BaseEdit
 }
 
-func (config EditMessageReplyMarkupConfig) values() (url.Values, error) {
+func (config EditMessageReplyMarkupConfig) values() (*fasthttp.Args, error) {
 	return config.BaseEdit.values()
 }
 
@@ -1070,7 +1047,7 @@ type InvoiceConfig struct {
 	IsFlexible          bool
 }
 
-func (config InvoiceConfig) values() (url.Values, error) {
+func (config InvoiceConfig) values() (*fasthttp.Args, error) {
 	v, err := config.BaseChat.values()
 	if err != nil {
 		return v, err
@@ -1146,8 +1123,8 @@ func (config DeleteMessageConfig) method() string {
 	return "deleteMessage"
 }
 
-func (config DeleteMessageConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config DeleteMessageConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 	v.Add("message_id", strconv.Itoa(config.MessageID))
@@ -1166,8 +1143,8 @@ func (config PinChatMessageConfig) method() string {
 	return "pinChatMessage"
 }
 
-func (config PinChatMessageConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config PinChatMessageConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 	v.Add("message_id", strconv.Itoa(config.MessageID))
@@ -1185,8 +1162,8 @@ func (config UnpinChatMessageConfig) method() string {
 	return "unpinChatMessage"
 }
 
-func (config UnpinChatMessageConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config UnpinChatMessageConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 
@@ -1203,8 +1180,8 @@ func (config SetChatTitleConfig) method() string {
 	return "setChatTitle"
 }
 
-func (config SetChatTitleConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config SetChatTitleConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 	v.Add("title", config.Title)
@@ -1222,8 +1199,8 @@ func (config SetChatDescriptionConfig) method() string {
 	return "setChatDescription"
 }
 
-func (config SetChatDescriptionConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config SetChatDescriptionConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 	v.Add("description", config.Description)
@@ -1255,8 +1232,8 @@ func (config DeleteChatPhotoConfig) method() string {
 	return "deleteChatPhoto"
 }
 
-func (config DeleteChatPhotoConfig) values() (url.Values, error) {
-	v := url.Values{}
+func (config DeleteChatPhotoConfig) values() (*fasthttp.Args, error) {
+	v := fasthttp.AcquireArgs()
 
 	v.Add("chat_id", strconv.FormatInt(config.ChatID, 10))
 

@@ -7422,253 +7422,6 @@ done:
 }
 
 // MarshalJSON marshal bytes to json - template
-func (j *GroupChat) MarshalJSON() ([]byte, error) {
-	var buf fflib.Buffer
-	if j == nil {
-		buf.WriteString("null")
-		return buf.Bytes(), nil
-	}
-	err := j.MarshalJSONBuf(&buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-// MarshalJSONBuf marshal buff to json - template
-func (j *GroupChat) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
-	if j == nil {
-		buf.WriteString("null")
-		return nil
-	}
-	var err error
-	var obj []byte
-	_ = obj
-	_ = err
-	buf.WriteString(`{"id":`)
-	fflib.FormatBits2(buf, uint64(j.ID), 10, j.ID < 0)
-	buf.WriteString(`,"title":`)
-	fflib.WriteJsonString(buf, string(j.Title))
-	buf.WriteByte('}')
-	return nil
-}
-
-const (
-	ffjtGroupChatbase = iota
-	ffjtGroupChatnosuchkey
-
-	ffjtGroupChatID
-
-	ffjtGroupChatTitle
-)
-
-var ffjKeyGroupChatID = []byte("id")
-
-var ffjKeyGroupChatTitle = []byte("title")
-
-// UnmarshalJSON umarshall json - template of ffjson
-func (j *GroupChat) UnmarshalJSON(input []byte) error {
-	fs := fflib.NewFFLexer(input)
-	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
-}
-
-// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
-func (j *GroupChat) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
-	var err error
-	currentKey := ffjtGroupChatbase
-	_ = currentKey
-	tok := fflib.FFTok_init
-	wantedTok := fflib.FFTok_init
-
-mainparse:
-	for {
-		tok = fs.Scan()
-		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
-		if tok == fflib.FFTok_error {
-			goto tokerror
-		}
-
-		switch state {
-
-		case fflib.FFParse_map_start:
-			if tok != fflib.FFTok_left_bracket {
-				wantedTok = fflib.FFTok_left_bracket
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_key
-			continue
-
-		case fflib.FFParse_after_value:
-			if tok == fflib.FFTok_comma {
-				state = fflib.FFParse_want_key
-			} else if tok == fflib.FFTok_right_bracket {
-				goto done
-			} else {
-				wantedTok = fflib.FFTok_comma
-				goto wrongtokenerror
-			}
-
-		case fflib.FFParse_want_key:
-			// json {} ended. goto exit. woo.
-			if tok == fflib.FFTok_right_bracket {
-				goto done
-			}
-			if tok != fflib.FFTok_string {
-				wantedTok = fflib.FFTok_string
-				goto wrongtokenerror
-			}
-
-			kn := fs.Output.Bytes()
-			if len(kn) <= 0 {
-				// "" case. hrm.
-				currentKey = ffjtGroupChatnosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			} else {
-				switch kn[0] {
-
-				case 'i':
-
-					if bytes.Equal(ffjKeyGroupChatID, kn) {
-						currentKey = ffjtGroupChatID
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 't':
-
-					if bytes.Equal(ffjKeyGroupChatTitle, kn) {
-						currentKey = ffjtGroupChatTitle
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyGroupChatTitle, kn) {
-					currentKey = ffjtGroupChatTitle
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyGroupChatID, kn) {
-					currentKey = ffjtGroupChatID
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				currentKey = ffjtGroupChatnosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			}
-
-		case fflib.FFParse_want_colon:
-			if tok != fflib.FFTok_colon {
-				wantedTok = fflib.FFTok_colon
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_value
-			continue
-		case fflib.FFParse_want_value:
-
-			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
-				switch currentKey {
-
-				case ffjtGroupChatID:
-					goto handle_ID
-
-				case ffjtGroupChatTitle:
-					goto handle_Title
-
-				case ffjtGroupChatnosuchkey:
-					err = fs.SkipField(tok)
-					if err != nil {
-						return fs.WrapErr(err)
-					}
-					state = fflib.FFParse_after_value
-					goto mainparse
-				}
-			} else {
-				goto wantedvalue
-			}
-		}
-	}
-
-handle_ID:
-
-	/* handler: j.ID type=int kind=int quoted=false*/
-
-	{
-		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
-		}
-	}
-
-	{
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
-
-			if err != nil {
-				return fs.WrapErr(err)
-			}
-
-			j.ID = int(tval)
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Title:
-
-	/* handler: j.Title type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Title = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-wantedvalue:
-	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
-wrongtokenerror:
-	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
-tokerror:
-	if fs.BigError != nil {
-		return fs.WrapErr(fs.BigError)
-	}
-	err = fs.Error.ToError()
-	if err != nil {
-		return fs.WrapErr(err)
-	}
-	panic("ffjson-generated: unreachable, please report bug.")
-done:
-
-	return nil
-}
-
-// MarshalJSON marshal bytes to json - template
 func (j *InlineKeyboardButton) MarshalJSON() ([]byte, error) {
 	var buf fflib.Buffer
 	if j == nil {
@@ -19876,311 +19629,6 @@ func (j *InputMediaPhoto) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	return nil
 }
 
-const (
-	ffjtInputMediaPhotobase = iota
-	ffjtInputMediaPhotonosuchkey
-
-	ffjtInputMediaPhotoType
-
-	ffjtInputMediaPhotoMedia
-
-	ffjtInputMediaPhotoCaption
-
-	ffjtInputMediaPhotoParseMode
-)
-
-var ffjKeyInputMediaPhotoType = []byte("type")
-
-var ffjKeyInputMediaPhotoMedia = []byte("media")
-
-var ffjKeyInputMediaPhotoCaption = []byte("caption")
-
-var ffjKeyInputMediaPhotoParseMode = []byte("parse_mode")
-
-// UnmarshalJSON umarshall json - template of ffjson
-func (j *InputMediaPhoto) UnmarshalJSON(input []byte) error {
-	fs := fflib.NewFFLexer(input)
-	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
-}
-
-// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
-func (j *InputMediaPhoto) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
-	var err error
-	currentKey := ffjtInputMediaPhotobase
-	_ = currentKey
-	tok := fflib.FFTok_init
-	wantedTok := fflib.FFTok_init
-
-mainparse:
-	for {
-		tok = fs.Scan()
-		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
-		if tok == fflib.FFTok_error {
-			goto tokerror
-		}
-
-		switch state {
-
-		case fflib.FFParse_map_start:
-			if tok != fflib.FFTok_left_bracket {
-				wantedTok = fflib.FFTok_left_bracket
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_key
-			continue
-
-		case fflib.FFParse_after_value:
-			if tok == fflib.FFTok_comma {
-				state = fflib.FFParse_want_key
-			} else if tok == fflib.FFTok_right_bracket {
-				goto done
-			} else {
-				wantedTok = fflib.FFTok_comma
-				goto wrongtokenerror
-			}
-
-		case fflib.FFParse_want_key:
-			// json {} ended. goto exit. woo.
-			if tok == fflib.FFTok_right_bracket {
-				goto done
-			}
-			if tok != fflib.FFTok_string {
-				wantedTok = fflib.FFTok_string
-				goto wrongtokenerror
-			}
-
-			kn := fs.Output.Bytes()
-			if len(kn) <= 0 {
-				// "" case. hrm.
-				currentKey = ffjtInputMediaPhotonosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			} else {
-				switch kn[0] {
-
-				case 'c':
-
-					if bytes.Equal(ffjKeyInputMediaPhotoCaption, kn) {
-						currentKey = ffjtInputMediaPhotoCaption
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'm':
-
-					if bytes.Equal(ffjKeyInputMediaPhotoMedia, kn) {
-						currentKey = ffjtInputMediaPhotoMedia
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'p':
-
-					if bytes.Equal(ffjKeyInputMediaPhotoParseMode, kn) {
-						currentKey = ffjtInputMediaPhotoParseMode
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 't':
-
-					if bytes.Equal(ffjKeyInputMediaPhotoType, kn) {
-						currentKey = ffjtInputMediaPhotoType
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				}
-
-				if fflib.EqualFoldRight(ffjKeyInputMediaPhotoParseMode, kn) {
-					currentKey = ffjtInputMediaPhotoParseMode
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaPhotoCaption, kn) {
-					currentKey = ffjtInputMediaPhotoCaption
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaPhotoMedia, kn) {
-					currentKey = ffjtInputMediaPhotoMedia
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaPhotoType, kn) {
-					currentKey = ffjtInputMediaPhotoType
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				currentKey = ffjtInputMediaPhotonosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			}
-
-		case fflib.FFParse_want_colon:
-			if tok != fflib.FFTok_colon {
-				wantedTok = fflib.FFTok_colon
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_value
-			continue
-		case fflib.FFParse_want_value:
-
-			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
-				switch currentKey {
-
-				case ffjtInputMediaPhotoType:
-					goto handle_Type
-
-				case ffjtInputMediaPhotoMedia:
-					goto handle_Media
-
-				case ffjtInputMediaPhotoCaption:
-					goto handle_Caption
-
-				case ffjtInputMediaPhotoParseMode:
-					goto handle_ParseMode
-
-				case ffjtInputMediaPhotonosuchkey:
-					err = fs.SkipField(tok)
-					if err != nil {
-						return fs.WrapErr(err)
-					}
-					state = fflib.FFParse_after_value
-					goto mainparse
-				}
-			} else {
-				goto wantedvalue
-			}
-		}
-	}
-
-handle_Type:
-
-	/* handler: j.Type type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Type = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Media:
-
-	/* handler: j.Media type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Media = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Caption:
-
-	/* handler: j.Caption type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Caption = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_ParseMode:
-
-	/* handler: j.ParseMode type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.ParseMode = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-wantedvalue:
-	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
-wrongtokenerror:
-	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
-tokerror:
-	if fs.BigError != nil {
-		return fs.WrapErr(fs.BigError)
-	}
-	err = fs.Error.ToError()
-	if err != nil {
-		return fs.WrapErr(err)
-	}
-	panic("ffjson-generated: unreachable, please report bug.")
-done:
-
-	return nil
-}
-
 // MarshalJSON marshal bytes to json - template
 func (j *InputMediaVideo) MarshalJSON() ([]byte, error) {
 	var buf fflib.Buffer
@@ -20225,520 +19673,6 @@ func (j *InputMediaVideo) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 		buf.WriteString(`,"supports_streaming":false`)
 	}
 	buf.WriteByte('}')
-	return nil
-}
-
-const (
-	ffjtInputMediaVideobase = iota
-	ffjtInputMediaVideonosuchkey
-
-	ffjtInputMediaVideoType
-
-	ffjtInputMediaVideoMedia
-
-	ffjtInputMediaVideoCaption
-
-	ffjtInputMediaVideoParseMode
-
-	ffjtInputMediaVideoWidth
-
-	ffjtInputMediaVideoHeight
-
-	ffjtInputMediaVideoDuration
-
-	ffjtInputMediaVideoSupportsStreaming
-)
-
-var ffjKeyInputMediaVideoType = []byte("type")
-
-var ffjKeyInputMediaVideoMedia = []byte("media")
-
-var ffjKeyInputMediaVideoCaption = []byte("caption")
-
-var ffjKeyInputMediaVideoParseMode = []byte("parse_mode")
-
-var ffjKeyInputMediaVideoWidth = []byte("width")
-
-var ffjKeyInputMediaVideoHeight = []byte("height")
-
-var ffjKeyInputMediaVideoDuration = []byte("duration")
-
-var ffjKeyInputMediaVideoSupportsStreaming = []byte("supports_streaming")
-
-// UnmarshalJSON umarshall json - template of ffjson
-func (j *InputMediaVideo) UnmarshalJSON(input []byte) error {
-	fs := fflib.NewFFLexer(input)
-	return j.UnmarshalJSONFFLexer(fs, fflib.FFParse_map_start)
-}
-
-// UnmarshalJSONFFLexer fast json unmarshall - template ffjson
-func (j *InputMediaVideo) UnmarshalJSONFFLexer(fs *fflib.FFLexer, state fflib.FFParseState) error {
-	var err error
-	currentKey := ffjtInputMediaVideobase
-	_ = currentKey
-	tok := fflib.FFTok_init
-	wantedTok := fflib.FFTok_init
-
-mainparse:
-	for {
-		tok = fs.Scan()
-		//	println(fmt.Sprintf("debug: tok: %v  state: %v", tok, state))
-		if tok == fflib.FFTok_error {
-			goto tokerror
-		}
-
-		switch state {
-
-		case fflib.FFParse_map_start:
-			if tok != fflib.FFTok_left_bracket {
-				wantedTok = fflib.FFTok_left_bracket
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_key
-			continue
-
-		case fflib.FFParse_after_value:
-			if tok == fflib.FFTok_comma {
-				state = fflib.FFParse_want_key
-			} else if tok == fflib.FFTok_right_bracket {
-				goto done
-			} else {
-				wantedTok = fflib.FFTok_comma
-				goto wrongtokenerror
-			}
-
-		case fflib.FFParse_want_key:
-			// json {} ended. goto exit. woo.
-			if tok == fflib.FFTok_right_bracket {
-				goto done
-			}
-			if tok != fflib.FFTok_string {
-				wantedTok = fflib.FFTok_string
-				goto wrongtokenerror
-			}
-
-			kn := fs.Output.Bytes()
-			if len(kn) <= 0 {
-				// "" case. hrm.
-				currentKey = ffjtInputMediaVideonosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			} else {
-				switch kn[0] {
-
-				case 'c':
-
-					if bytes.Equal(ffjKeyInputMediaVideoCaption, kn) {
-						currentKey = ffjtInputMediaVideoCaption
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'd':
-
-					if bytes.Equal(ffjKeyInputMediaVideoDuration, kn) {
-						currentKey = ffjtInputMediaVideoDuration
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'h':
-
-					if bytes.Equal(ffjKeyInputMediaVideoHeight, kn) {
-						currentKey = ffjtInputMediaVideoHeight
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'm':
-
-					if bytes.Equal(ffjKeyInputMediaVideoMedia, kn) {
-						currentKey = ffjtInputMediaVideoMedia
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'p':
-
-					if bytes.Equal(ffjKeyInputMediaVideoParseMode, kn) {
-						currentKey = ffjtInputMediaVideoParseMode
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 's':
-
-					if bytes.Equal(ffjKeyInputMediaVideoSupportsStreaming, kn) {
-						currentKey = ffjtInputMediaVideoSupportsStreaming
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 't':
-
-					if bytes.Equal(ffjKeyInputMediaVideoType, kn) {
-						currentKey = ffjtInputMediaVideoType
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				case 'w':
-
-					if bytes.Equal(ffjKeyInputMediaVideoWidth, kn) {
-						currentKey = ffjtInputMediaVideoWidth
-						state = fflib.FFParse_want_colon
-						goto mainparse
-					}
-
-				}
-
-				if fflib.EqualFoldRight(ffjKeyInputMediaVideoSupportsStreaming, kn) {
-					currentKey = ffjtInputMediaVideoSupportsStreaming
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoDuration, kn) {
-					currentKey = ffjtInputMediaVideoDuration
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoHeight, kn) {
-					currentKey = ffjtInputMediaVideoHeight
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoWidth, kn) {
-					currentKey = ffjtInputMediaVideoWidth
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.EqualFoldRight(ffjKeyInputMediaVideoParseMode, kn) {
-					currentKey = ffjtInputMediaVideoParseMode
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoCaption, kn) {
-					currentKey = ffjtInputMediaVideoCaption
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoMedia, kn) {
-					currentKey = ffjtInputMediaVideoMedia
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				if fflib.SimpleLetterEqualFold(ffjKeyInputMediaVideoType, kn) {
-					currentKey = ffjtInputMediaVideoType
-					state = fflib.FFParse_want_colon
-					goto mainparse
-				}
-
-				currentKey = ffjtInputMediaVideonosuchkey
-				state = fflib.FFParse_want_colon
-				goto mainparse
-			}
-
-		case fflib.FFParse_want_colon:
-			if tok != fflib.FFTok_colon {
-				wantedTok = fflib.FFTok_colon
-				goto wrongtokenerror
-			}
-			state = fflib.FFParse_want_value
-			continue
-		case fflib.FFParse_want_value:
-
-			if tok == fflib.FFTok_left_brace || tok == fflib.FFTok_left_bracket || tok == fflib.FFTok_integer || tok == fflib.FFTok_double || tok == fflib.FFTok_string || tok == fflib.FFTok_bool || tok == fflib.FFTok_null {
-				switch currentKey {
-
-				case ffjtInputMediaVideoType:
-					goto handle_Type
-
-				case ffjtInputMediaVideoMedia:
-					goto handle_Media
-
-				case ffjtInputMediaVideoCaption:
-					goto handle_Caption
-
-				case ffjtInputMediaVideoParseMode:
-					goto handle_ParseMode
-
-				case ffjtInputMediaVideoWidth:
-					goto handle_Width
-
-				case ffjtInputMediaVideoHeight:
-					goto handle_Height
-
-				case ffjtInputMediaVideoDuration:
-					goto handle_Duration
-
-				case ffjtInputMediaVideoSupportsStreaming:
-					goto handle_SupportsStreaming
-
-				case ffjtInputMediaVideonosuchkey:
-					err = fs.SkipField(tok)
-					if err != nil {
-						return fs.WrapErr(err)
-					}
-					state = fflib.FFParse_after_value
-					goto mainparse
-				}
-			} else {
-				goto wantedvalue
-			}
-		}
-	}
-
-handle_Type:
-
-	/* handler: j.Type type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Type = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Media:
-
-	/* handler: j.Media type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Media = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Caption:
-
-	/* handler: j.Caption type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.Caption = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_ParseMode:
-
-	/* handler: j.ParseMode type=string kind=string quoted=false*/
-
-	{
-
-		{
-			if tok != fflib.FFTok_string && tok != fflib.FFTok_null {
-				return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for string", tok))
-			}
-		}
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			outBuf := fs.Output.Bytes()
-
-			j.ParseMode = string(string(outBuf))
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Width:
-
-	/* handler: j.Width type=int kind=int quoted=false*/
-
-	{
-		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
-		}
-	}
-
-	{
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
-
-			if err != nil {
-				return fs.WrapErr(err)
-			}
-
-			j.Width = int(tval)
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Height:
-
-	/* handler: j.Height type=int kind=int quoted=false*/
-
-	{
-		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
-		}
-	}
-
-	{
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
-
-			if err != nil {
-				return fs.WrapErr(err)
-			}
-
-			j.Height = int(tval)
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_Duration:
-
-	/* handler: j.Duration type=int kind=int quoted=false*/
-
-	{
-		if tok != fflib.FFTok_integer && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for int", tok))
-		}
-	}
-
-	{
-
-		if tok == fflib.FFTok_null {
-
-		} else {
-
-			tval, err := fflib.ParseInt(fs.Output.Bytes(), 10, 64)
-
-			if err != nil {
-				return fs.WrapErr(err)
-			}
-
-			j.Duration = int(tval)
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-handle_SupportsStreaming:
-
-	/* handler: j.SupportsStreaming type=bool kind=bool quoted=false*/
-
-	{
-		if tok != fflib.FFTok_bool && tok != fflib.FFTok_null {
-			return fs.WrapErr(fmt.Errorf("cannot unmarshal %s into Go value for bool", tok))
-		}
-	}
-
-	{
-		if tok == fflib.FFTok_null {
-
-		} else {
-			tmpb := fs.Output.Bytes()
-
-			if bytes.Compare([]byte{'t', 'r', 'u', 'e'}, tmpb) == 0 {
-
-				j.SupportsStreaming = true
-
-			} else if bytes.Compare([]byte{'f', 'a', 'l', 's', 'e'}, tmpb) == 0 {
-
-				j.SupportsStreaming = false
-
-			} else {
-				err = errors.New("unexpected bytes for true/false value")
-				return fs.WrapErr(err)
-			}
-
-		}
-	}
-
-	state = fflib.FFParse_after_value
-	goto mainparse
-
-wantedvalue:
-	return fs.WrapErr(fmt.Errorf("wanted value token, but got token: %v", tok))
-wrongtokenerror:
-	return fs.WrapErr(fmt.Errorf("ffjson: wanted token: %v, but got token: %v output=%s", wantedTok, tok, fs.Output.String()))
-tokerror:
-	if fs.BigError != nil {
-		return fs.WrapErr(fs.BigError)
-	}
-	err = fs.Error.ToError()
-	if err != nil {
-		return fs.WrapErr(err)
-	}
-	panic("ffjson-generated: unreachable, please report bug.")
-done:
-
 	return nil
 }
 
@@ -22746,55 +21680,47 @@ func (j *Message) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	fflib.FormatBits2(buf, uint64(j.EditDate), 10, j.EditDate < 0)
 	buf.WriteString(`,"text":`)
 	fflib.WriteJsonString(buf, string(j.Text))
+	buf.WriteString(`,"entities":`)
 	if j.Entities != nil {
-		buf.WriteString(`,"entities":`)
-		if j.Entities != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.Entities {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.Entities {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"entities":null`)
+		buf.WriteString(`null`)
 	}
+	buf.WriteString(`,"caption_entities":`)
 	if j.CaptionEntities != nil {
-		buf.WriteString(`,"caption_entities":`)
-		if j.CaptionEntities != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.CaptionEntities {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.CaptionEntities {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"caption_entities":null`)
+		buf.WriteString(`null`)
 	}
 	if j.Audio != nil {
 		buf.WriteString(`,"audio":`)
@@ -22852,30 +21778,26 @@ func (j *Message) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	} else {
 		buf.WriteString(`,"game":null`)
 	}
+	buf.WriteString(`,"photo":`)
 	if j.Photo != nil {
-		buf.WriteString(`,"photo":`)
-		if j.Photo != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.Photo {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.Photo {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"photo":null`)
+		buf.WriteString(`null`)
 	}
 	if j.Sticker != nil {
 		buf.WriteString(`,"sticker":`)
@@ -22977,30 +21899,26 @@ func (j *Message) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	} else {
 		buf.WriteString(`,"venue":null`)
 	}
+	buf.WriteString(`,"new_chat_members":`)
 	if j.NewChatMembers != nil {
-		buf.WriteString(`,"new_chat_members":`)
-		if j.NewChatMembers != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.NewChatMembers {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.NewChatMembers {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"new_chat_members":null`)
+		buf.WriteString(`null`)
 	}
 	if j.LeftChatMember != nil {
 		buf.WriteString(`,"left_chat_member":`)
@@ -23018,30 +21936,26 @@ func (j *Message) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	}
 	buf.WriteString(`,"new_chat_title":`)
 	fflib.WriteJsonString(buf, string(j.NewChatTitle))
+	buf.WriteString(`,"new_chat_photo":`)
 	if j.NewChatPhoto != nil {
-		buf.WriteString(`,"new_chat_photo":`)
-		if j.NewChatPhoto != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.NewChatPhoto {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.NewChatPhoto {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"new_chat_photo":null`)
+		buf.WriteString(`null`)
 	}
 	if j.DeleteChatPhoto {
 		buf.WriteString(`,"delete_chat_photo":true`)
@@ -23112,11 +22026,15 @@ func (j *Message) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	buf.WriteByte(',')
 	if j.PassportData != nil {
 		if true {
-			/* Struct fall back. type=tgbotapi.PassportData kind=struct */
 			buf.WriteString(`"passport_data":`)
-			err = buf.Encode(j.PassportData)
-			if err != nil {
-				return err
+
+			{
+
+				err = j.PassportData.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
 			}
 			buf.WriteByte(',')
 		}
@@ -24312,7 +23230,7 @@ handle_Entities:
 			j.Entities = nil
 		} else {
 
-			j.Entities = &[]MessageEntity{}
+			j.Entities = []MessageEntity{}
 
 			wantVal := true
 
@@ -24354,7 +23272,7 @@ handle_Entities:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.Entities = append(*j.Entities, tmpJEntities)
+				j.Entities = append(j.Entities, tmpJEntities)
 
 				wantVal = false
 			}
@@ -24380,7 +23298,7 @@ handle_CaptionEntities:
 			j.CaptionEntities = nil
 		} else {
 
-			j.CaptionEntities = &[]MessageEntity{}
+			j.CaptionEntities = []MessageEntity{}
 
 			wantVal := true
 
@@ -24422,7 +23340,7 @@ handle_CaptionEntities:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.CaptionEntities = append(*j.CaptionEntities, tmpJCaptionEntities)
+				j.CaptionEntities = append(j.CaptionEntities, tmpJCaptionEntities)
 
 				wantVal = false
 			}
@@ -24552,7 +23470,7 @@ handle_Photo:
 			j.Photo = nil
 		} else {
 
-			j.Photo = &[]PhotoSize{}
+			j.Photo = []PhotoSize{}
 
 			wantVal := true
 
@@ -24594,7 +23512,7 @@ handle_Photo:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.Photo = append(*j.Photo, tmpJPhoto)
+				j.Photo = append(j.Photo, tmpJPhoto)
 
 				wantVal = false
 			}
@@ -24828,7 +23746,7 @@ handle_NewChatMembers:
 			j.NewChatMembers = nil
 		} else {
 
-			j.NewChatMembers = &[]User{}
+			j.NewChatMembers = []User{}
 
 			wantVal := true
 
@@ -24870,7 +23788,7 @@ handle_NewChatMembers:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.NewChatMembers = append(*j.NewChatMembers, tmpJNewChatMembers)
+				j.NewChatMembers = append(j.NewChatMembers, tmpJNewChatMembers)
 
 				wantVal = false
 			}
@@ -24948,7 +23866,7 @@ handle_NewChatPhoto:
 			j.NewChatPhoto = nil
 		} else {
 
-			j.NewChatPhoto = &[]PhotoSize{}
+			j.NewChatPhoto = []PhotoSize{}
 
 			wantVal := true
 
@@ -24990,7 +23908,7 @@ handle_NewChatPhoto:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.NewChatPhoto = append(*j.NewChatPhoto, tmpJNewChatPhoto)
+				j.NewChatPhoto = append(j.NewChatPhoto, tmpJNewChatPhoto)
 
 				wantVal = false
 			}
@@ -25283,16 +24201,22 @@ handle_PassportData:
 	/* handler: j.PassportData type=tgbotapi.PassportData kind=struct quoted=false*/
 
 	{
-		/* Falling back. type=tgbotapi.PassportData kind=struct */
-		tbuf, err := fs.CaptureField(tok)
-		if err != nil {
-			return fs.WrapErr(err)
-		}
+		if tok == fflib.FFTok_null {
 
-		err = json.Unmarshal(tbuf, &j.PassportData)
-		if err != nil {
-			return fs.WrapErr(err)
+			j.PassportData = nil
+
+		} else {
+
+			if j.PassportData == nil {
+				j.PassportData = new(PassportData)
+			}
+
+			err = j.PassportData.UnmarshalJSONFFLexer(fs, fflib.FFParse_want_key)
+			if err != nil {
+				return err
+			}
 		}
+		state = fflib.FFParse_after_value
 	}
 
 	state = fflib.FFParse_after_value
@@ -28569,30 +27493,26 @@ func (j *ShippingOption) MarshalJSONBuf(buf fflib.EncodingBuffer) error {
 	fflib.WriteJsonString(buf, string(j.ID))
 	buf.WriteString(`,"title":`)
 	fflib.WriteJsonString(buf, string(j.Title))
+	buf.WriteString(`,"prices":`)
 	if j.Prices != nil {
-		buf.WriteString(`,"prices":`)
-		if j.Prices != nil {
-			buf.WriteString(`[`)
-			for i, v := range *j.Prices {
-				if i != 0 {
-					buf.WriteString(`,`)
-				}
-
-				{
-
-					err = v.MarshalJSONBuf(buf)
-					if err != nil {
-						return err
-					}
-
-				}
+		buf.WriteString(`[`)
+		for i, v := range j.Prices {
+			if i != 0 {
+				buf.WriteString(`,`)
 			}
-			buf.WriteString(`]`)
-		} else {
-			buf.WriteString(`null`)
+
+			{
+
+				err = v.MarshalJSONBuf(buf)
+				if err != nil {
+					return err
+				}
+
+			}
 		}
+		buf.WriteString(`]`)
 	} else {
-		buf.WriteString(`,"prices":null`)
+		buf.WriteString(`null`)
 	}
 	buf.WriteByte('}')
 	return nil
@@ -28828,7 +27748,7 @@ handle_Prices:
 			j.Prices = nil
 		} else {
 
-			j.Prices = &[]LabeledPrice{}
+			j.Prices = []LabeledPrice{}
 
 			wantVal := true
 
@@ -28870,7 +27790,7 @@ handle_Prices:
 					state = fflib.FFParse_after_value
 				}
 
-				*j.Prices = append(*j.Prices, tmpJPrices)
+				j.Prices = append(j.Prices, tmpJPrices)
 
 				wantVal = false
 			}

@@ -1,3 +1,5 @@
+// Package tgbotapi has functions and types used for interacting with
+// the Telegram Bot API.
 package tgbotapi
 
 import (
@@ -292,7 +294,7 @@ func NewVoiceShare(chatID int64, fileID string) VoiceConfig {
 
 // NewMediaGroup creates a new media group. Files should be an array of
 // two to ten InputMediaPhoto or InputMediaVideo.
-func NewMediaGroup(chatID int64, files []interface{}) MediaGroupConfig {
+func NewMediaGroup(chatID int64, files ...inputMedia) MediaGroupConfig {
 	return MediaGroupConfig{
 		BaseChat: BaseChat{
 			ChatID: chatID,
@@ -302,16 +304,16 @@ func NewMediaGroup(chatID int64, files []interface{}) MediaGroupConfig {
 }
 
 // NewInputMediaPhoto creates a new InputMediaPhoto.
-func NewInputMediaPhoto(media string) InputMediaPhoto {
-	return InputMediaPhoto{
+func NewInputMediaPhoto(media string) *InputMediaPhoto {
+	return &InputMediaPhoto{
 		Type:  "photo",
 		Media: media,
 	}
 }
 
 // NewInputMediaVideo creates a new InputMediaVideo.
-func NewInputMediaVideo(media string) InputMediaVideo {
-	return InputMediaVideo{
+func NewInputMediaVideo(media string) *InputMediaVideo {
+	return &InputMediaVideo{
 		Type:  "video",
 		Media: media,
 	}
@@ -351,17 +353,6 @@ func NewVenue(chatID int64, title, address string, latitude, longitude float64) 
 		Address:   address,
 		Latitude:  latitude,
 		Longitude: longitude,
-	}
-}
-
-// NewChatAction sets a chat action.
-// Actions last for 5 seconds, or until your next action.
-//
-// chatID is where to send it, action should be set via Chat constants.
-func NewChatAction(chatID int64, action string) ChatActionConfig {
-	return ChatActionConfig{
-		BaseChat: BaseChat{ChatID: chatID},
-		Action:   action,
 	}
 }
 
@@ -622,7 +613,7 @@ func NewEditMessageCaption(chatID int64, messageID int, caption string) EditMess
 			ChatID:    chatID,
 			MessageID: messageID,
 		},
-		Caption:   caption,
+		Caption: caption,
 	}
 }
 
