@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"unsafe"
 
-	"github.com/qioalice/devola-core/event"
+	"github.com/qioalice/devola/core/event"
 
 	"github.com/qioalice/devola-backend-telegram/ikba"
 )
