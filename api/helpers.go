@@ -1,6 +1,6 @@
 // Package tgbotapi has functions and types used for interacting with
 // the Telegram Bot API.
-package tgbotapi
+package api
 
 import (
 	"net/url"
@@ -771,7 +771,8 @@ func NewInvoice(chatID int64, title, description, payload, providerToken, startP
 		ProviderToken:  providerToken,
 		StartParameter: startParameter,
 		Currency:       currency,
-		Prices:         prices}
+		Prices:         prices,
+	}
 }
 
 // NewSetChatPhotoUpload creates a new chat photo uploader.

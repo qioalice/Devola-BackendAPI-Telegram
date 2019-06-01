@@ -1,6 +1,6 @@
 // Package tgbotapi has functions and types used for interacting with
 // the Telegram Bot API.
-package tgbotapi
+package api
 
 import (
 	"encoding/json"
@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	ffjsoninception "github.com/pquerna/ffjson/inception"
+	"github.com/pquerna/ffjson/inception"
 	"github.com/valyala/bytebufferpool"
 )
 
